@@ -7,7 +7,7 @@ import random
 from models import setup_db, Question, Category
 
 # REFERENCE FOR MAJORITY OF THIS SECTION: 
-# ahttps://github.com/udacity/cd0037-API-Development-and-Documentation-exercises/blob/master/6_Final_Review/backend/flaskr/__init__.py
+# https://github.com/udacity/cd0037-API-Development-and-Documentation-exercises/blob/master/6_Final_Review/backend/flaskr/__init__.py
 
 QUESTIONS_PER_PAGE = 10
 
@@ -52,6 +52,21 @@ def create_app(test_config=None):
   Create an endpoint to handle GET requests 
   for all available categories.
   '''
+  @app.route("/categories", methods=['GET'])
+  def get_categories(): 
+      selection = Category.query.order_by(Category.id).all()
+      current_categories = paginate_questions(request, selection)
+
+      if len(current_categories) == 0:
+          abort(404)
+
+      return jsonify(
+        {
+          "success": True, 
+          "categories": current_categories,
+          "total_categories": len(Category.query.all()),
+        }
+      )
 
 
   '''
@@ -66,6 +81,32 @@ def create_app(test_config=None):
   ten questions per page and pagination at the bottom of the screen for three pages.
   Clicking on the page numbers should update the questions. 
   '''
+  # References: 
+  # https://knowledge.udacity.com/questions/221888
+  # https://knowledge.udacity.com/questions/578073
+  @app.route("/questions", methods=['GET'])
+  def get_questions(): 
+      selection = Question.query.order_by(Question.id).all()
+      current_questions = paginate_questions(request, selection)
+
+      categories_dict = {}
+      for category in categories: 
+                  categories_dict[category.id] = category.type
+
+      if len(current_questions) == 0:
+          abort(404)
+
+      return jsonify(
+        {
+          "success": True, 
+          "questions": current_questions,
+          "total_questions": len(Questions.query.all()),
+          "current_category": categories_dict,
+          "categories": None,
+        }
+      ), 200
+
+
 
   '''
   @TODO: 
