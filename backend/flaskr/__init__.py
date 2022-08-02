@@ -6,7 +6,21 @@ import random
 
 from models import setup_db, Question, Category
 
+# REFERENCE FOR MAJORITY OF THIS SECTION: 
+# ahttps://github.com/udacity/cd0037-API-Development-and-Documentation-exercises/blob/master/6_Final_Review/backend/flaskr/__init__.py
+
 QUESTIONS_PER_PAGE = 10
+
+def paginate_questions(request, selection):
+    page = request.args.get("page", 1, type=int)
+    start = (page -1) * QUESTIONS_PER_PAGE
+    end = start + QUESTIONS_PER_PAGE  
+
+    questions = [Question.format() for question in selection]
+    current_questions = questions[start:end]
+
+    return current_questions
+
 
 def create_app(test_config=None):
   # create and configure the app
@@ -16,10 +30,22 @@ def create_app(test_config=None):
   '''
   @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
   '''
+  # Reference: https://flask-cors.readthedocs.io/en/1.10.0/
+  CORS(*app, resources={'/': {'origins': '*'}})
+
 
   '''
   @TODO: Use the after_request decorator to set Access-Control-Allow
   '''
+  @app.after_request
+  def after_request(response):
+      response.headers.add("Access-Control-Allow-Headers", 
+                          "Content-Type,Authorization,true")
+      response.headers.add("Access-Control-Allow-Methods", 
+                            "GET,PUT,POST,DELETE,OPTIONS")
+
+      return response
+
 
   '''
   @TODO: 
