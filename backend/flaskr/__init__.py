@@ -31,7 +31,7 @@ def create_app(test_config=None):
   @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
   '''
   # Reference: https://flask-cors.readthedocs.io/en/1.10.0/
-  CORS(*app, resources={'/': {'origins': '*'}})
+  CORS(*app, resources={r'*': {'origins': '*'}})
 
 
   '''
@@ -52,7 +52,9 @@ def create_app(test_config=None):
   Create an endpoint to handle GET requests 
   for all available categories.
   '''
-  # Reference: https://knowledge.udacity.com/questions/578305
+  # References: 
+  # https://knowledge.udacity.com/questions/578305
+  # https://knowledge.udacity.com/questions/501641
   @app.route("/categories", methods=['GET'])
   def get_categories(): 
       selection = Category.query.order_by(Category.id).all()
@@ -69,7 +71,7 @@ def create_app(test_config=None):
       return jsonify(
         {
           "success": True, 
-          "categories": current_categories,
+          "categories": categories_dict,
           "total_categories": len(Category.query.all()),
         }
       )
