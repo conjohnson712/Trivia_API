@@ -6,7 +6,7 @@ import random
 
 from models import setup_db, Question, Category
 
-# REFERENCE FOR MAJORITY OF THIS SECTION: 
+# REFERENCE FOR THIS WHOLE FILE: 
 # https://github.com/udacity/cd0037-API-Development-and-Documentation-exercises/blob/master/6_Final_Review/backend/flaskr/__init__.py
 
 QUESTIONS_PER_PAGE = 10
@@ -52,10 +52,16 @@ def create_app(test_config=None):
   Create an endpoint to handle GET requests 
   for all available categories.
   '''
+  # Reference: https://knowledge.udacity.com/questions/578305
   @app.route("/categories", methods=['GET'])
   def get_categories(): 
       selection = Category.query.order_by(Category.id).all()
       current_categories = paginate_questions(request, selection)
+
+      categories = Category.query.all()
+      categories_dict = {}
+      for category in categories: 
+                  categories_dict[category.id] = category.type
 
       if len(current_categories) == 0:
           abort(404)
@@ -84,11 +90,13 @@ def create_app(test_config=None):
   # References: 
   # https://knowledge.udacity.com/questions/221888
   # https://knowledge.udacity.com/questions/578073
+  # https://knowledge.udacity.com/questions/578305
   @app.route("/questions", methods=['GET'])
   def get_questions(): 
       selection = Question.query.order_by(Question.id).all()
       current_questions = paginate_questions(request, selection)
-
+      
+      categories = Category.query.all()
       categories_dict = {}
       for category in categories: 
                   categories_dict[category.id] = category.type
@@ -104,7 +112,7 @@ def create_app(test_config=None):
           "current_category": categories_dict,
           "categories": None,
         }
-      ), 200
+      )
 
 
 
@@ -115,6 +123,32 @@ def create_app(test_config=None):
   TEST: When you click the trash icon next to a question, the question will be removed.
   This removal will persist in the database and when you refresh the page. 
   '''
+  @app.route("/questions/<int:question_id>", methods=["DELETE"])
+  def delete_question(question_id):
+      try:
+          question = Question.query.filter(
+                          Question.id == question_id).one_or_none()
+
+          if question is None:
+              abort(404)
+
+          question.delete()
+          selection = Question.query.order_by(Question.id).all()
+          current_questions = paginate_questions(request, selection)
+
+          return jsonify(
+              {
+                  "success": True,
+                  "deleted": question_id,
+                  "questions": current_questions,
+                  "total_questions": len(Question.query.all()),
+              }
+          )
+
+      except:
+          abort(422)
+
+
 
   '''
   @TODO: 
@@ -126,6 +160,56 @@ def create_app(test_config=None):
   the form will clear and the question will appear at the end of the last page
   of the questions list in the "List" tab.  
   '''
+  @app.route("/questions", methods=["POST"])
+  def add_question():
+        body = request.get_json()
+
+        new_question = body.get("question", None)
+        new_answer = body.get("answer", None)
+        new_difficulty = body.get("difficulty", None)
+        new_category = body.get("category", None)
+        search = body.get("searchTerm", None)
+
+        try:
+            if search:
+                selection = Question.query.order_by(Question.id).filter(
+                    Question.new_questions.ilike("%{}%".format(search))
+                )
+                
+                current_questions = paginate_questions(request, selection)
+
+                return jsonify(
+                    {
+                        "success": True,
+                        "questions": current_questions,
+                        "total_questions": len(selection.all()),
+                    }
+                )
+            else:
+                question = Question(
+                      Question=new_question, 
+                      Answer=new_answer, 
+                      Difficulty=new_difficulty,
+                      Category=new_category
+                      )
+                question.insert()
+
+                selection = Question.query.order_by(Question.id).all()
+                current_questions = paginate_questions(request, selection)
+
+                return jsonify(
+                    {
+                        "success": True,
+                        "created": book.id,
+                        "questions": current_questions,
+                        "total_questions": len(Query.query.all()),
+                    }
+                )
+
+        except:
+            abort(422)
+
+
 
   '''
   @TODO: 
@@ -137,6 +221,30 @@ def create_app(test_config=None):
   only question that include that string within their question. 
   Try using the word "title" to start. 
   '''
+  # Reference: https://knowledge.udacity.com/questions/566457
+  @app.route("/questions", methods=["POST"])
+  def search_questions():
+      body = request.get_json()
+      search_term = body.get("searchTerm", None)
+      try:
+          if search:
+              selection = Question.query.order_by(Question.id).filter(
+                  Question.question.ilike("%{}%".format(search))
+              )
+              
+              current_questions = paginate_questions(request, selection)
+
+              return jsonify(
+                  {
+                      "success": True,
+                      "questions": current_questions,
+                      "total_questions": len(selection.all()),
+                      "current_category": None,
+                  })
+      except:
+          abort(404)
+
+
 
   '''
   @TODO: 
@@ -146,6 +254,27 @@ def create_app(test_config=None):
   categories in the left column will cause only questions of that 
   category to be shown. 
   '''
+  # Reference: https://knowledge.udacity.com/questions/578305
+  @app.route("/categories/<int:category_id>/questions", methods=['GET'])
+  def get_question_by_category(): 
+      categories = Category.query.filter_by(id = category_id).one_or_none()
+      if categories is None:
+          abort(404)
+
+      questions = Question.query.filter_by(category = str(category_id)).all()
+      current_questions = paginate_questions(request, selection)
+      if len(questions) == 0:
+          abort(404)
+
+      return jsonify(
+        {
+          "success": True, 
+          "questions": current_questions,
+          "total_questions": len(Questions.query.all()),
+          "current_category": categories.format()
+        }
+      )
+
 
 
   '''
@@ -159,13 +288,76 @@ def create_app(test_config=None):
   one question at a time is displayed, the user is allowed to answer
   and shown whether they were correct or not. 
   '''
+  # References: 
+  # https://knowledge.udacity.com/questions/69090
+  # https://knowledge.udacity.com/questions/78359
+  @app.route("/quizzes", methods=['POST'])
+  def play_quiz(): 
+      try: 
+          body = request.get_json()
+
+          quiz_category = body.get('quiz_category', None).get('id')
+          previous_questions = body.get('previous_questions', None)
+
+          if quiz_category == 0: 
+              quiz_questions = Question.query.filter(
+                    Question.id.notin_(previous_questions)).all()
+          else:
+              quiz_questions = Question.query.filter(
+                Question.id.notin_(previous_questions),
+                Question.category == category_id).all()
+          
+          quiz_question = None
+          if(quiz_questions):
+              quiz_question = random.choice(quiz_questions)
+
+          return jsonify({
+              'success': True,
+              'question': quiz_question.format()
+          })
+      except: 
+            abort(422)
+
+
 
   '''
   @TODO: 
   Create error handlers for all expected errors 
   including 404 and 422. 
   '''
-  
+  @app.errorhandler(404)
+  def not_found(error):
+      return (
+          jsonify({
+            "success": False, 
+            "error": 404, 
+            "message": "Resource not found"})
+      ), 404
+
+  @app.errorhandler(422)
+  def unprocessable(error):
+      return (jsonify({
+          "success": False, 
+          "error": 422, 
+          "message": "Unprocessable"
+      })), 422
+
+  @app.errorhandler(400)
+  def bad_request(error):
+      return jsonify({
+            "success": False, 
+            "error": 400, 
+            "message": "Bad request"
+      }), 400
+
+  @app.errorhandler(500)
+  def server_error(error):
+      return jsonify({
+            "success": False,
+            "error": 500,
+            "message": "Internal server error"
+      }), 500
+
   return app
 
     
