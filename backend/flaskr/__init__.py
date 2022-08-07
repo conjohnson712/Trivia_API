@@ -31,7 +31,7 @@ def create_app(test_config=None):
   @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
   '''
   # Reference: https://flask-cors.readthedocs.io/en/1.10.0/
-  CORS(*app, resources={r'*': {'origins': '*'}})
+  cors = CORS(app, resources={r'/*': {'origins': '*'}})
 
 
   '''
