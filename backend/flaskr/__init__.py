@@ -189,10 +189,10 @@ def create_app(test_config=None):
                 )
             else:
                 question = Question(
-                      Question=new_question, 
-                      Answer=new_answer, 
-                      Difficulty=new_difficulty,
-                      Category=new_category
+                      question=new_question, 
+                      answer=new_answer, 
+                      difficulty=new_difficulty,
+                      category=new_category
                       )
                 question.insert()
 
