@@ -13,10 +13,10 @@ QUESTIONS_PER_PAGE = 10
 
 def paginate_questions(request, selection):
     page = request.args.get("page", 1, type=int)
-    start = (page -1) * QUESTIONS_PER_PAGE
+    start = (page - 1) * QUESTIONS_PER_PAGE
     end = start + QUESTIONS_PER_PAGE  
 
-    questions = [Question.format() for question in selection]
+    questions = [question.format() for question in selection]
     current_questions = questions[start:end]
 
     return current_questions
@@ -110,9 +110,9 @@ def create_app(test_config=None):
         {
           "success": True, 
           "questions": current_questions,
-          "total_questions": len(Questions.query.all()),
-          "current_category": categories_dict,
-          "categories": None,
+          "total_questions": len(Question.query.all()),
+          "current_category": None,
+          "categories": categories_dict,
         }
       )
 
