@@ -12,6 +12,7 @@ from models import setup_db, Question, Category
 QUESTIONS_PER_PAGE = 10
 
 def paginate_questions(request, selection):
+    # Limit number of questions that appear per page
     page = request.args.get("page", 1, type=int)
     start = (page - 1) * QUESTIONS_PER_PAGE
     end = start + QUESTIONS_PER_PAGE  
@@ -39,6 +40,7 @@ def create_app(test_config=None):
   '''
   @app.after_request
   def after_request(response):
+      # Sets request allowances 
       response.headers.add("Access-Control-Allow-Headers", 
                           "Content-Type,Authorization,true")
       response.headers.add("Access-Control-Allow-Methods", 
@@ -56,15 +58,18 @@ def create_app(test_config=None):
   # https://knowledge.udacity.com/questions/578305
   # https://knowledge.udacity.com/questions/501641
   @app.route("/categories", methods=['GET'])
-  def get_categories(): 
+  def get_categories():
+      # Fetch the list of available categories
       selection = Category.query.all()
       current_categories = paginate_questions(request, selection)
-
       categories = Category.query.all()
+
+      # Create a dictionary to house categories
       categories_dict = {}
       for category in categories: 
                   categories_dict[category.id] = category.type
 
+      # If no categories present, abort 
       if len(current_categories) == 0:
           abort(404)
 
@@ -94,15 +99,18 @@ def create_app(test_config=None):
   # https://knowledge.udacity.com/questions/578073
   # https://knowledge.udacity.com/questions/578305
   @app.route("/questions", methods=['GET'])
-  def get_questions(): 
+  def get_questions():
+      # Fetch all available questions
       selection = Question.query.order_by(Question.id).all()
       current_questions = paginate_questions(request, selection)
       
+      # Instantiation of category dictionary
       categories = Category.query.all()
       categories_dict = {}
       for category in categories: 
                   categories_dict[category.id] = category.type
 
+      # If there are no questions, abort
       if len(current_questions) == 0:
           abort(404)
 
@@ -127,14 +135,18 @@ def create_app(test_config=None):
   '''
   @app.route("/questions/<int:question_id>", methods=["DELETE"])
   def delete_question(question_id):
+      # Deletes a selected question from total list
       try:
           question = Question.query.filter(
                           Question.id == question_id).one_or_none()
 
+          # If no question to select, abort
           if question is None:
               abort(404)
 
           question.delete()
+
+          # Update the questions list without the deleted entry
           selection = Question.query.order_by(Question.id).all()
           current_questions = paginate_questions(request, selection)
 
@@ -164,52 +176,57 @@ def create_app(test_config=None):
   '''
   @app.route("/questions", methods=["POST"])
   def add_question():
-        body = request.get_json()
+    # Create a new question 
+    body = request.get_json()
 
-        new_question = body.get("question", None)
-        new_answer = body.get("answer", None)
-        new_difficulty = body.get("difficulty", None)
-        new_category = body.get("category", None)
-        search = body.get("searchTerm", None)
+    # New Question parameters
+    new_question = body.get("question", None)
+    new_answer = body.get("answer", None)
+    new_difficulty = body.get("difficulty", None)
+    new_category = body.get("category", None)
+    search = body.get("searchTerm", None)
 
-        try:
-            if search:
-                selection = Question.query.filter(
-                    Question.new_questions.ilike("%{}%".format(search))
-                ).all()
-                
-                current_questions = paginate_questions(request, selection)
+    try:
+        # Search questions, ensure new question is unique. 
+        # If post is not unique, return question list
+        if search:
+            selection = Question.query.filter(
+                Question.new_questions.ilike("%{}%".format(search))
+            ).all()
+            
+            current_questions = paginate_questions(request, selection)
 
-                return jsonify(
-                    {
-                        "success": True,
-                        "questions": current_questions,
-                        "total_questions": len(current_questions),
-                    }
-                )
-            else:
-                question = Question(
-                      question=new_question, 
-                      answer=new_answer, 
-                      difficulty=new_difficulty,
-                      category=new_category
-                      )
-                question.insert()
+            return jsonify(
+                {
+                    "success": True,
+                    "questions": current_questions,
+                    "total_questions": len(current_questions),
+                }
+            )
+        else:
+            # If new question IS unique, post new question.
+            question = Question(
+                    question=new_question, 
+                    answer=new_answer, 
+                    difficulty=new_difficulty,
+                    category=new_category
+                    )
+            question.insert()
 
-                selection = Question.query.order_by(Question.id).all()
-                current_questions = paginate_questions(request, selection)
+            selection = Question.query.order_by(Question.id).all()
+            current_questions = paginate_questions(request, selection)
 
-                return jsonify(
-                    {
-                        "success": True,
-                        "created": question.id,
-                        "questions": current_questions,
-                        "total_questions": len(Question.query.all()),
-                    }
-                )
+            return jsonify(
+                {
+                    "success": True,
+                    "created": question.id,
+                    "questions": current_questions,
+                    "total_questions": len(Question.query.all()),
+                }
+            )
 
-        except:
-            abort(422)
+    except:
+        abort(422)
 
 
 
@@ -226,9 +243,11 @@ def create_app(test_config=None):
   # Reference: https://knowledge.udacity.com/questions/566457
   @app.route("/questions/search", methods=["POST"])
   def search_questions():
+      # Search questions list for matching searchTerm
       body = request.get_json()
       search = body.get("searchTerm", None)
       try:
+          # If search finds results, return the results
           if search:
               selection = Question.query.order_by(Question.id).filter(
                   Question.question.ilike("%{}%".format(search))).all()
@@ -258,12 +277,18 @@ def create_app(test_config=None):
   # Reference: https://knowledge.udacity.com/questions/578305
   @app.route("/categories/<int:category_id>/questions", methods=['GET'])
   def get_question_by_category(category_id): 
+      # Filter questions by category
       category = Category.query.filter_by(id = category_id).one_or_none()
+
+      # If no category, abort      
       if category is None:
           abort(404)
 
+      # Gather and paginate questiosn
       questions = Question.query.filter_by(category = str(category_id)).all()
       current_questions = paginate_questions(request, questions)
+
+      # If there are no questions, abort
       if len(questions) == 0:
           abort(404)
 
@@ -294,21 +319,27 @@ def create_app(test_config=None):
   # https://knowledge.udacity.com/questions/78359
   @app.route("/quizzes", methods=['POST'])
   def play_quiz(): 
-      
+        # Select questions from a list to play the Trivia game
         body = request.get_json()
 
+        # Select quiz category, define previous questions
         quiz_category = body.get('quiz_category', None).get('id')
         previous_questions = body.get('previous_questions', None)
         try: 
+          # If category doesn't exist, no questions appear
           if quiz_category == 0: 
               quiz_questions = Question.query.filter(
                     Question.id.notin_(previous_questions)).all()
           else:
+              # If category does exist, gather relevant questions
               quiz_questions = Question.query.filter(
                 Question.id.notin_(previous_questions),
                 Question.category == quiz_category).all()
           
+          # Instantiate the quiz question
           quiz_question = None
+
+          # If there are questions for the quiz, pick a random one
           if(quiz_questions):
               quiz_question = random.choice(quiz_questions)
 
