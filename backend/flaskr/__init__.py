@@ -294,19 +294,19 @@ def create_app(test_config=None):
   # https://knowledge.udacity.com/questions/78359
   @app.route("/quizzes", methods=['POST'])
   def play_quiz(): 
-      try: 
-          body = request.get_json()
+      
+        body = request.get_json()
 
-          quiz_category = body.get('quiz_category', None).get('id')
-          previous_questions = body.get('previous_questions', None)
-
+        quiz_category = body.get('quiz_category', None).get('id')
+        previous_questions = body.get('previous_questions', None)
+        try: 
           if quiz_category == 0: 
               quiz_questions = Question.query.filter(
                     Question.id.notin_(previous_questions)).all()
           else:
               quiz_questions = Question.query.filter(
                 Question.id.notin_(previous_questions),
-                Question.category == category_id).all()
+                Question.category == quiz_category).all()
           
           quiz_question = None
           if(quiz_questions):
@@ -316,7 +316,7 @@ def create_app(test_config=None):
               'success': True,
               'question': quiz_question.format()
           })
-      except: 
+        except: 
             abort(422)
 
 
