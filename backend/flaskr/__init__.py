@@ -57,7 +57,7 @@ def create_app(test_config=None):
   # https://knowledge.udacity.com/questions/501641
   @app.route("/categories", methods=['GET'])
   def get_categories(): 
-      selection = Category.query.order_by(Category.id).all()
+      selection = Category.query.all()
       current_categories = paginate_questions(request, selection)
 
       categories = Category.query.all()
@@ -111,8 +111,8 @@ def create_app(test_config=None):
           "success": True, 
           "questions": current_questions,
           "total_questions": len(Question.query.all()),
-          "current_category": None,
           "categories": categories_dict,
+          "current_category": None,
         }
       )
 
@@ -174,9 +174,9 @@ def create_app(test_config=None):
 
         try:
             if search:
-                selection = Question.query.order_by(Question.id).filter(
+                selection = Question.query.filter(
                     Question.new_questions.ilike("%{}%".format(search))
-                )
+                ).all()
                 
                 current_questions = paginate_questions(request, selection)
 
@@ -184,7 +184,7 @@ def create_app(test_config=None):
                     {
                         "success": True,
                         "questions": current_questions,
-                        "total_questions": len(selection.all()),
+                        "total_questions": len(current_questions),
                     }
                 )
             else:
@@ -202,9 +202,9 @@ def create_app(test_config=None):
                 return jsonify(
                     {
                         "success": True,
-                        "created": book.id,
+                        "created": question.id,
                         "questions": current_questions,
-                        "total_questions": len(Query.query.all()),
+                        "total_questions": len(Question.query.all()),
                     }
                 )
 
@@ -258,13 +258,13 @@ def create_app(test_config=None):
   '''
   # Reference: https://knowledge.udacity.com/questions/578305
   @app.route("/categories/<int:category_id>/questions", methods=['GET'])
-  def get_question_by_category(): 
-      categories = Category.query.filter_by(id = category_id).one_or_none()
-      if categories is None:
+  def get_question_by_category(category_id): 
+      category = Category.query.filter_by(id = category_id).one_or_none()
+      if category is None:
           abort(404)
 
       questions = Question.query.filter_by(category = str(category_id)).all()
-      current_questions = paginate_questions(request, selection)
+      current_questions = paginate_questions(request, questions)
       if len(questions) == 0:
           abort(404)
 
@@ -272,8 +272,8 @@ def create_app(test_config=None):
         {
           "success": True, 
           "questions": current_questions,
-          "total_questions": len(Questions.query.all()),
-          "current_category": categories.format()
+          "total_questions": len(questions),
+          "current_category": category.format(),
         }
       )
 
