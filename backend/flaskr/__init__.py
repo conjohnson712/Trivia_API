@@ -224,15 +224,14 @@ def create_app(test_config=None):
   Try using the word "title" to start. 
   '''
   # Reference: https://knowledge.udacity.com/questions/566457
-  @app.route("/questions", methods=["POST"])
+  @app.route("/questions/search", methods=["POST"])
   def search_questions():
       body = request.get_json()
-      search_term = body.get("searchTerm", None)
+      search = body.get("searchTerm", None)
       try:
           if search:
               selection = Question.query.order_by(Question.id).filter(
-                  Question.question.ilike("%{}%".format(search))
-              )
+                  Question.question.ilike("%{}%".format(search))).all()
               
               current_questions = paginate_questions(request, selection)
 
@@ -240,8 +239,8 @@ def create_app(test_config=None):
                   {
                       "success": True,
                       "questions": current_questions,
-                      "total_questions": len(selection.all()),
-                      "current_category": None,
+                      "totalQuestions": len(selection),
+                      "currentCategory": None,
                   })
       except:
           abort(404)
